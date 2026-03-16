@@ -1,3 +1,12 @@
+/**
+ * @file keymap.c
+ * @brief Key mapping and state tracking
+ * 
+ * Handles simple key remapping and state tracking for vi mode.
+ * The key mappings here are those which do not need awareness of
+ * their vi state and are simple translations.
+ */
+
 #include <string.h>
 #include "keymap.h"
 #include "output.h"
@@ -61,41 +70,6 @@ static void set_fn(layer_t *layer, WORD from_vk, void (*fn)(void)) {
     layer->keys[from_vk].fn   = fn;
 }
 
-// ─── Action Functions ────────────────────────────────────────────────────────
-// these are called by the vi state machine for compound actions
-
-static void action_delete_line(void) {
-    // Home → Shift+End → Delete
-    static key_event_t seq[] = {
-        { VK_HOME,   0, 0                },
-        { VK_END,    0, KEYEVENTF_EXTENDEDKEY                },
-        { VK_END,    0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP },
-        { VK_HOME,   0, KEYEVENTF_KEYUP  },
-        { VK_DELETE, 0, 0                },
-        { VK_DELETE, 0, KEYEVENTF_KEYUP  },
-    };
-    // TODO: shift+end needs to be held during the end press
-    // this sequence will be refined — see output_sequence notes
-    output_sequence(seq, 6);
-}
-
-static void action_yank_line(void) {
-    // Home → Shift+End → Ctrl+C → Home
-    static key_event_t seq[] = {
-        { VK_HOME,    0, 0               },
-        { VK_HOME,    0, KEYEVENTF_KEYUP },
-        { VK_SHIFT,   0, 0               },
-        { VK_END,     0, 0               },
-        { VK_END,     0, KEYEVENTF_KEYUP },
-        { VK_SHIFT,   0, KEYEVENTF_KEYUP },
-        { VK_CONTROL, 0, 0               },
-        { 'C',        0, 0               },
-        { 'C',        0, KEYEVENTF_KEYUP },
-        { VK_CONTROL, 0, KEYEVENTF_KEYUP },
-    };
-    output_sequence(seq, 10);
-}
-
 // ─── Layer Setup ─────────────────────────────────────────────────────────────
 
 static void setup_insert_layer(void) {
@@ -110,16 +84,20 @@ static void setup_normal_layer(void) {
     layer_normal.name = "normal";
     memset(layer_normal.keys, 0, sizeof(layer_normal.keys));
 
-    // ── movement ──────────────────────────────────────────
+    //-------------------------------------------------------------------------
+    // Movement
+    //-------------------------------------------------------------------------
+
     set_key(&layer_normal, 'H', VK_LEFT);
     set_key(&layer_normal, 'J', VK_DOWN);
     set_key(&layer_normal, 'K', VK_UP);
     set_key(&layer_normal, 'L', VK_RIGHT);
     set_key(&layer_normal, '0', VK_HOME);
-    set_key(&layer_normal, '4', VK_END);    // $ = shift+4, handled in vi.c
     set_key(&layer_normal, 'X', VK_DELETE);
 
-    // ── word movement ─────────────────────────────────────
+    //-------------------------------------------------------------------------
+    // Word movement
+    //-------------------------------------------------------------------------
     // w = Ctrl+Right,  b = Ctrl+Left
     // these need modifier wrapping — handled as sequences
     static key_event_t w_seq[] = {
@@ -141,13 +119,13 @@ static void setup_normal_layer(void) {
     layer_normal.keys['B'].sequence.events = b_seq;
     layer_normal.keys['B'].sequence.count  = 4;
 
-    // ── editing ───────────────────────────────────────────
-    set_fn(&layer_normal, 'D', action_delete_line);  // dd refined in vi.c
-    set_fn(&layer_normal, 'Y', action_yank_line);
-    set_key(&layer_normal, 'P', 'V');                // paste — refined in vi.c
-    set_key(&layer_normal, 'U', 'Z');                // undo  — refined in vi.c
+    //-------------------------------------------------------------------------
+    // Misc editing shortcuts
+    //-------------------------------------------------------------------------
 
-    // ── undo / redo need Ctrl wrapping ────────────────────
+    set_key(&layer_normal, 'P', 'V');
+    set_key(&layer_normal, 'U', 'Z');
+
     static key_event_t undo_seq[] = {
         { VK_CONTROL, 0, 0               },
         { 'Z',        0, 0               },
@@ -163,6 +141,7 @@ static void setup_normal_layer(void) {
     layer_normal.keys['U'].type            = ACTION_SEQUENCE;
     layer_normal.keys['U'].sequence.events = undo_seq;
     layer_normal.keys['U'].sequence.count  = 4;
+
     layer_normal.keys['P'].type            = ACTION_SEQUENCE;
     layer_normal.keys['P'].sequence.events = paste_seq;
     layer_normal.keys['P'].sequence.count  = 4;

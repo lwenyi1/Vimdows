@@ -20,9 +20,6 @@ typedef enum {
     ACTION_KEY,         // emit a single key
     ACTION_SEQUENCE,    // emit a sequence of keys
     ACTION_FUNCTION,    // call a C function
-    ACTION_MODE_SWITCH, // switch vi mode
-    ACTION_LAYER_PUSH,  // push a layer onto the stack
-    ACTION_LAYER_POP    // pop the top layer off the stack
 } action_type_t;
 
 // a single key event (one entry in a sequence)
@@ -43,7 +40,6 @@ typedef struct {
         } sequence;
         void        (*fn)(void);        // ACTION_FUNCTION
         vi_mode_t   mode;               // ACTION_MODE_SWITCH
-        int         layer_index;        // ACTION_LAYER_PUSH / POP
     };
 } key_action_t;
 

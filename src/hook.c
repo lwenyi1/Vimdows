@@ -1,3 +1,10 @@
+/**
+ * @file hook.c
+ * @brief Low-level keyboard hook
+ * 
+ * Installs and uninstalls the low-level keyboard hook.
+ */
+
 #include <windows.h>
 #include <stdbool.h>
 #include "keymap.h"
@@ -6,7 +13,9 @@
 
 static HHOOK g_hook = NULL;
 
-// ─── Hook Callback ───────────────────────────────────────────────────────────
+//-------------------------------------------------------------------------
+// Low-level keyboard hook
+//-------------------------------------------------------------------------
 
 static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode != HC_ACTION) {
@@ -28,13 +37,15 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
     bool consumed = vi_process_key(vk, keydown);
 
     if (consumed) {
-        return 1; // swallow the event — don't pass to the next hook or app
+        return 1;  // swallow the event — don't pass to the next hook or app
     }
 
     return CallNextHookEx(g_hook, nCode, wParam, lParam);
 }
 
-// ─── Hook Management ─────────────────────────────────────────────────────────
+//-------------------------------------------------------------------------
+// Hook management
+//-------------------------------------------------------------------------
 
 bool hook_install(void) {
     g_hook = SetWindowsHookEx(

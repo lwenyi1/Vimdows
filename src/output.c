@@ -1,3 +1,10 @@
+/**
+ * @file output.c
+ * @brief Output helper functions
+ * 
+ * Handles output of key events to the system.
+ */
+
 #include <windows.h>
 #include <stdbool.h>
 #include <string.h>
