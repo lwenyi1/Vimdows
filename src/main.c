@@ -4,7 +4,9 @@
 #include "output.h"
 #include "hook.h"
 
-// ─── Signal / Console Handler ────────────────────────────────────────────────
+//============================================================================
+// Console Control Handler
+//============================================================================
 
 static BOOL WINAPI ConsoleHandler(DWORD signal) {
     if (signal == CTRL_C_EVENT || signal == CTRL_CLOSE_EVENT) {
@@ -14,7 +16,9 @@ static BOOL WINAPI ConsoleHandler(DWORD signal) {
     return TRUE;
 }
 
-// ─── Entry Point ─────────────────────────────────────────────────────────────
+//============================================================================
+// Entry point
+//============================================================================
 
 int main(void) {
     SetConsoleCtrlHandler(ConsoleHandler, TRUE);

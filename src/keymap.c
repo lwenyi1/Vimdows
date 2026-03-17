@@ -11,7 +11,9 @@
 #include "keymap.h"
 #include "output.h"
 
-// ─── Global State ────────────────────────────────────────────────────────────
+//=============================================================================
+// Globals
+//=============================================================================
 
 vi_state_t g_state = {
     .mode        = MODE_INSERT,
@@ -21,17 +23,18 @@ vi_state_t g_state = {
     .digit_len   = 0
 };
 
-// ─── Layer Definitions ───────────────────────────────────────────────────────
+//=============================================================================
+// Layer definitions
+//
 // layers are defined as static structs and registered in keymap_init()
 // keys not explicitly set default to ACTION_NONE (zero-initialised)
+//=============================================================================
 
 static layer_t layer_insert;
 static layer_t layer_normal;
 
 static layer_t *g_layer_registry[MAX_LAYERS] = {0};
 static int      g_layer_count                = 0;
-
-// ─── Layer Stack Operations ──────────────────────────────────────────────────
 
 void layer_push(int layer_index) {
     if (g_state.stack.top >= MAX_LAYERS - 1) return;
@@ -44,7 +47,9 @@ void layer_pop(void) {
     g_state.stack.top--;
 }
 
-// ─── Key Lookup ──────────────────────────────────────────────────────────────
+//=============================================================================
+// Key lookup
+//=============================================================================
 
 // walk the layer stack from top to bottom and return the first
 // non-ACTION_NONE binding for this vkCode, or NULL for passthrough
@@ -58,8 +63,6 @@ key_action_t *keymap_lookup(WORD vk) {
     return NULL; // passthrough
 }
 
-// ─── Helper: set a simple key remap in a layer ───────────────────────────────
-
 static void set_key(layer_t *layer, WORD from_vk, WORD to_vk) {
     layer->keys[from_vk].type = ACTION_KEY;
     layer->keys[from_vk].vk   = to_vk;
@@ -70,7 +73,9 @@ static void set_fn(layer_t *layer, WORD from_vk, void (*fn)(void)) {
     layer->keys[from_vk].fn   = fn;
 }
 
-// ─── Layer Setup ─────────────────────────────────────────────────────────────
+//=============================================================================
+// Layer setup
+//=============================================================================
 
 static void setup_insert_layer(void) {
     layer_insert.name = "insert";
@@ -147,7 +152,9 @@ static void setup_normal_layer(void) {
     layer_normal.keys['P'].sequence.count  = 4;
 }
 
-// ─── Init ────────────────────────────────────────────────────────────────────
+//=============================================================================
+// Init
+//=============================================================================
 
 void keymap_init(void) {
     setup_insert_layer();
