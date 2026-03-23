@@ -10,7 +10,8 @@
 typedef enum {
     MODE_INSERT,
     MODE_NORMAL,
-    MODE_OPERATOR_PENDING
+    MODE_OPERATOR_PENDING,
+    MODE_G_PENDING
 } vi_mode_t;
 
 // ─── Action Types ────────────────────────────────────────────────────────────

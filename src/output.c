@@ -63,6 +63,11 @@ void output_sequence(const key_event_t *events, int count) {
     free(inputs);
 }
 
+void output_sequence_repeat(const key_event_t *events, int count, int repeat) {
+    output_sequence(events, count);
+    Sleep(5);
+}
+
 // release every key we currently think is held down
 // call this before unhooking to prevent stuck modifiers
 void output_release_all(void) {

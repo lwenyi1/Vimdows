@@ -1,5 +1,7 @@
 # Mappings from vi to Windows equivalents
 
+This table also kind of acts as a TODO list for me.
+
 | vi Command | Windows/GUI Equivalent | Use / Description |
 | --- | --- | --- |
 | h, j, k, l | Arrow Keys | Move cursor: Left, Down, Up, Right |
@@ -42,6 +44,6 @@
 | Ctrl + b | WIP | Scroll up one full screen |
 | Esc | (2) | Exit Insert Mode and return to Command Mode |
 
-(1) Effectively same as / on Windows
+(1) Effectively same as / on Windows  
 (2) Contemplating whether adding this would break some normal stuff because
 escape is a rather important key.

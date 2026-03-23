@@ -31,7 +31,7 @@ int main(void) {
         return 1;
     }
 
-    printf("vi-kbd running. Press Ctrl+C to exit.\n");
+    printf("Vimdows running. Press Ctrl+C to exit.\n");
 
     // the message loop is required to keep the low-level hook alive
     // WH_KEYBOARD_LL callbacks are dispatched via the message queue of

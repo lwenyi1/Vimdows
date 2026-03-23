@@ -15,6 +15,8 @@
 #include "keymap.h"
 #include "output.h"
 
+#include <stdio.h> // for debugging
+
 //===========================================================================
 // Mode switching helper functions
 //===========================================================================
@@ -76,7 +78,7 @@ bool vi_process_key(WORD vk, bool keydown) {
     // Insert mode
     //-------------------------------------------------------------------
     if (g_state.mode == MODE_INSERT) {
-        return false;
+        return false;  // Let everything passthrough
     }
 
     //-------------------------------------------------------------------
@@ -90,13 +92,22 @@ bool vi_process_key(WORD vk, bool keydown) {
         WORD op = g_state.operator_vk;
         g_state.mode        = MODE_NORMAL;
         g_state.operator_vk = 0;
+        int count = vi_get_count();
 
         if (op == 'D' && vk == 'D') {
-            // dd, copy then delete current line
-            static key_event_t select_seq[] = {
+            // dd, copy then delete line
+            static key_event_t start_select_seq[] = {
                 { VK_HOME,    0, 0                },
                 { VK_HOME,    0, KEYEVENTF_KEYUP  },
                 { VK_SHIFT,   0, 0                },
+                { VK_END,     0, 0                },
+                { VK_END,     0, KEYEVENTF_KEYUP  },
+            };
+            static key_event_t down_seq[] = {
+                {VK_DOWN,     0, 0                },
+                {VK_DOWN,     0, KEYEVENTF_KEYUP  },
+            };
+            static key_event_t end_select_seq[] = {
                 { VK_END,     0, 0                },
                 { VK_END,     0, KEYEVENTF_KEYUP  },
                 { VK_SHIFT,   0, KEYEVENTF_KEYUP  },
@@ -112,23 +123,32 @@ bool vi_process_key(WORD vk, bool keydown) {
                 { VK_DELETE,  0, KEYEVENTF_KEYUP  },
             };
 
-            int count = vi_get_count();
-            for (int i = 0; i < count; i++) {
-                output_sequence(select_seq, 6);
-                output_sequence(copy_seq, 4);
-                Sleep(20);  // give the clipboard time to finish writing
-                output_sequence(delete_seq, 2);
+            output_sequence(start_select_seq, 5);
+            for (int i = 0; i < count - 1; i++) {
+                output_sequence(down_seq, 2); 
             }
+            output_sequence(end_select_seq, 3);
+            output_sequence(copy_seq, 4);
+            Sleep(20);
+            output_sequence(delete_seq, 2);
             vi_clear_count();
             return true;
         }
         
         if (op == 'Y' && vk == 'Y') {
             // yy, yank the current line
-            static key_event_t select_seq[] = {
+            static key_event_t start_select_seq[] = {
                 { VK_HOME,    0, 0                },
                 { VK_HOME,    0, KEYEVENTF_KEYUP  },
                 { VK_SHIFT,   0, 0                },
+                { VK_END,     0, 0                },
+                { VK_END,     0, KEYEVENTF_KEYUP  },
+            };
+            static key_event_t down_seq[] = {
+                {VK_DOWN,     0, 0                },
+                {VK_DOWN,     0, KEYEVENTF_KEYUP  },
+            };
+            static key_event_t end_select_seq[] = {
                 { VK_END,     0, 0                },
                 { VK_END,     0, KEYEVENTF_KEYUP  },
                 { VK_SHIFT,   0, KEYEVENTF_KEYUP  },
@@ -146,7 +166,11 @@ bool vi_process_key(WORD vk, bool keydown) {
                 { VK_HOME,    0, KEYEVENTF_KEYUP  },
             };
 
-            output_sequence(select_seq, 6);
+            output_sequence(start_select_seq, 5);
+            for (int i = 0; i < count - 1; i++) {
+                output_sequence(down_seq, 2); 
+            }
+            output_sequence(end_select_seq, 3);
             output_sequence(copy_seq, 4);
             Sleep(20);
             output_sequence(deselect_seq, 2);
@@ -168,7 +192,6 @@ bool vi_process_key(WORD vk, bool keydown) {
                 { VK_DELETE,  0, 0                },
                 { VK_DELETE,  0, KEYEVENTF_KEYUP  },
             };
-            int count = vi_get_count();
             for (int i = 0; i < count; i++) {
                 output_sequence(select_seq, 6);
                 output_sequence(delete_seq, 2);
@@ -190,7 +213,6 @@ bool vi_process_key(WORD vk, bool keydown) {
                 { VK_DELETE,  0, 0                },
                 { VK_DELETE,  0, KEYEVENTF_KEYUP  },
             };
-            int count = vi_get_count();
             for (int i = 0; i < count; i++) {
                 output_sequence(seq, 8);
             }
@@ -218,7 +240,6 @@ bool vi_process_key(WORD vk, bool keydown) {
                 { VK_LEFT,    0, 0                },
                 { VK_LEFT,    0, KEYEVENTF_KEYUP  },
             };
-            int count = vi_get_count();
             for (int i = 0; i < count; i++) {
                 output_sequence(select_seq, 6);
             }
@@ -241,7 +262,6 @@ bool vi_process_key(WORD vk, bool keydown) {
                 { VK_DELETE,  0, 0                },
                 { VK_DELETE,  0, KEYEVENTF_KEYUP  },
             };
-            int count = vi_get_count();
             for (int i = 0; i < count; i++) {
                 output_sequence(seq, 8);
             }
@@ -312,21 +332,46 @@ bool vi_process_key(WORD vk, bool keydown) {
         return true;
     }
 
-    //-------------------------------------------------------------------------
-    // Shift keys
-    //-------------------------------------------------------------------------
-    if (vk == '4') {
-        // $ (shift+4) — end of line
-        if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+    //-------------------------------------------------------------------
+    // g-pending mode (gg only, g + anything else re-processes the key)
+    //-------------------------------------------------------------------
+    if (g_state.mode == MODE_G_PENDING) {
+        g_state.mode = MODE_NORMAL;
+
+        if (vk == 'G') {
+            // gg — go to start of document (Ctrl+Home)
             static key_event_t seq[] = {
-                { VK_SHIFT, 0, KEYEVENTF_KEYUP },  // release shift first
-                { VK_END,   0, 0               },
-                { VK_END,   0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, 0               },
+                { VK_HOME,    0, 0               },
+                { VK_HOME,    0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, KEYEVENTF_KEYUP },
             };
-            output_sequence(seq, 3);
+            output_sequence(seq, 4);
+            vi_clear_count();
             return true;
         }
-        // if shift not held — fall through to keymap lookup for bare '4'
+
+        // unrecognised key after g — discard g and re-process the key normally
+        vi_clear_count();
+        return vi_process_key(vk, true);
+    }
+
+    //-------------------------------------------------------------------------
+    // Shift + number keys
+    //
+    // These have to be placed before we get the digit counts if not they will
+    // be "absorbed" as a count prefix.
+    //-------------------------------------------------------------------------
+    if (vk == '4' && (GetAsyncKeyState(VK_SHIFT) & 0x8000)) {
+        // $ (shift+4) — end of line
+        static key_event_t seq[] = {
+            { VK_SHIFT, 0, KEYEVENTF_KEYUP },
+            { VK_END,   0, 0               },
+            { VK_END,   0, KEYEVENTF_KEYUP },
+        };
+        output_sequence(seq, 3);
+        vi_clear_count();
+        return true;
     }
 
     //--------------------------------------------------------------------------
@@ -346,26 +391,125 @@ bool vi_process_key(WORD vk, bool keydown) {
     }
 
     int count = vi_get_count();
-    vi_clear_count();
 
-    // keys that enter operator-pending mode
-    if (vk == 'D' || vk == 'Y' || vk == 'C') {
+    //--------------------------------------------------------------------------
+    // Go to a line
+    //--------------------------------------------------------------------------
+    if (vk == 'G') {
+        if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+            static key_event_t top_seq[] = {
+                { VK_SHIFT,   0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, 0               },
+                { VK_HOME,    0, 0               },
+                { VK_HOME,    0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, KEYEVENTF_KEYUP },
+            };
+            static key_event_t down_seq[] = {
+                { VK_DOWN,    0, 0               },
+                { VK_DOWN,    0, KEYEVENTF_KEYUP },
+            };
+            static key_event_t end_seq[] = {
+                { VK_SHIFT,   0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, 0               },
+                { VK_END,     0, 0               },
+                { VK_END,     0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, KEYEVENTF_KEYUP },
+            };
+
+            if (g_state.digit_len > 0) {
+                // <n>G — go to line n
+                output_sequence(top_seq, 5);
+                for (int i = 0; i < count - 1; i++) {
+                    output_sequence(down_seq, 2);
+                }
+            } else {
+                // bare G — go to end of document
+                output_sequence(end_seq, 5);
+            }
+        } else {
+            // lowercase g — enter g-pending mode
+            g_state.mode = MODE_G_PENDING;
+        }
+        vi_clear_count();
+        return true;
+    } 
+
+    //---------------------------------------------------------------------------
+    // Edit keys that enter operator-pending mode
+    //---------------------------------------------------------------------------
+    if (vk == 'D') {
+        if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+            // D (shift+d) — cut current selection (Ctrl+X)
+            static key_event_t seq[] = {
+                { VK_SHIFT,   0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, 0               },
+                { 'X',        0, 0               },
+                { 'X',        0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, KEYEVENTF_KEYUP },
+            };
+            output_sequence(seq, 5);
+            vi_clear_count();
+            return true;
+        }
         g_state.mode        = MODE_OPERATOR_PENDING;
-        g_state.operator_vk = vk;
+        g_state.operator_vk = 'D';
+        return true;
+    }
+
+    if (vk == 'Y') {
+        if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+            // Y (shift+y) — copy current selection (Ctrl+C)
+            static key_event_t seq[] = {
+                { VK_SHIFT,   0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, 0               },
+                { 'C',        0, 0               },
+                { 'C',        0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, KEYEVENTF_KEYUP },
+            };
+            output_sequence(seq, 5);
+            vi_clear_count();
+            return true;
+        }
+        g_state.mode        = MODE_OPERATOR_PENDING;
+        g_state.operator_vk = 'Y';
+        return true;
+    }
+
+    if (vk == 'C') {
+        if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+            // C (shift+c) — cut current selection and enter insert mode (Ctrl+X)
+            static key_event_t seq[] = {
+                { VK_SHIFT,   0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, 0               },
+                { 'X',        0, 0               },
+                { 'X',        0, KEYEVENTF_KEYUP },
+                { VK_CONTROL, 0, KEYEVENTF_KEYUP },
+            };
+            output_sequence(seq, 5);
+            vi_clear_count();
+            vi_enter_insert();
+            return true;
+        }
+        g_state.mode        = MODE_OPERATOR_PENDING;
+        g_state.operator_vk = 'C';
         return true;
     }
 
     //-------------------------------------------------------------------------
     // Mode switching keys
+    //
+    // These are processed specially as they swap mode.
     //-------------------------------------------------------------------------
     if (vk == 'I') {
         // i — enter insert, same as CAPS LOCK but included for familiarity
+        vi_clear_count();
         vi_enter_insert();
         return true;
     }
 
     if (vk == 'A') {
         // a — enter insert after cursor (move right first)
+        vi_clear_count();
         static key_event_t seq[] = {
             { VK_RIGHT, 0, 0               },
             { VK_RIGHT, 0, KEYEVENTF_KEYUP },
@@ -378,26 +522,37 @@ bool vi_process_key(WORD vk, bool keydown) {
     if (vk == 'O') {
         if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
             // O — open new line above (Home, Enter, Up, indent)
-            static key_event_t seq[] = {
+            static key_event_t start_seq[] = {
                 { VK_SHIFT,  0, KEYEVENTF_KEYUP },  // Release shift first
                 { VK_HOME,   0, 0               },
                 { VK_HOME,   0, KEYEVENTF_KEYUP },
+            };
+            static key_event_t return_seq[] = {
                 { VK_RETURN, 0, 0               },
                 { VK_RETURN, 0, KEYEVENTF_KEYUP },
                 { VK_UP,     0, 0               },
                 { VK_UP,     0, KEYEVENTF_KEYUP },
             };
-            output_sequence(seq, 6);
+            output_sequence(start_seq, 3);
+            for (int i = 0; i < count; i++) {
+                output_sequence(return_seq, 4);
+            }
         } else {
             // o — open new line below (End, Enter)
-            static key_event_t seq[] = {
+            static key_event_t start_seq[] = {
                 { VK_END,    0, 0               },
                 { VK_END,    0, KEYEVENTF_KEYUP },
+            };
+            static key_event_t return_seq[] = {
                 { VK_RETURN, 0, 0               },
                 { VK_RETURN, 0, KEYEVENTF_KEYUP },
             };
-            output_sequence(seq, 4);
+            output_sequence(start_seq, 2);
+            for (int i = 0; i < count; i++) {
+                output_sequence(return_seq, 2);
+            }
         }
+        vi_clear_count();
         vi_enter_insert();
         return true;
     }
@@ -406,15 +561,20 @@ bool vi_process_key(WORD vk, bool keydown) {
     // Handle the keys
     //-------------------------------------------------------------------------
     key_action_t *action = keymap_lookup(vk);
-    if (!action) return false; // passthrough
+    if (!action) {
+        return false; // passthrough
+    }
 
+    vi_clear_count();
     for (int i = 0; i < count; i++) {
         switch (action->type) {
             case ACTION_KEY:
                 output_tap(action->vk);
                 break;
             case ACTION_SEQUENCE:
-                output_sequence(action->sequence.events, action->sequence.count);
+                output_sequence_repeat(action->sequence.events,
+                                        action->sequence.count,
+                                        count);
                 break;
             case ACTION_FUNCTION:
                 if (action->fn) action->fn();
