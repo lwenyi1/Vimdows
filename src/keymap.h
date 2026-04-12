@@ -21,6 +21,7 @@ typedef enum {
     ACTION_KEY,         // emit a single key
     ACTION_SEQUENCE,    // emit a sequence of keys
     ACTION_FUNCTION,    // call a C function
+    ACTION_NOP,         // do nothing, but consume
 } action_type_t;
 
 // a single key event (one entry in a sequence)

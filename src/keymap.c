@@ -63,6 +63,10 @@ key_action_t *keymap_lookup(WORD vk) {
     return NULL; // passthrough
 }
 
+static void set_nop(layer_t *layer, WORD vk) {
+    layer->keys[vk].type = ACTION_NOP;
+}
+
 static void set_key(layer_t *layer, WORD from_vk, WORD to_vk) {
     layer->keys[from_vk].type = ACTION_KEY;
     layer->keys[from_vk].vk   = to_vk;
@@ -150,6 +154,18 @@ static void setup_normal_layer(void) {
     layer_normal.keys['P'].type            = ACTION_SEQUENCE;
     layer_normal.keys['P'].sequence.events = paste_seq;
     layer_normal.keys['P'].sequence.count  = 4;
+
+    //-------------------------------------------------------------------------
+    // Unbound keys, do nothing for now
+    //
+    // These are keys I keep accidentally pressing and want them to not do
+    // anything >:(
+    //-------------------------------------------------------------------------
+    set_nop(&layer_normal, 'Q');
+    set_nop(&layer_normal, 'E');
+    set_nop(&layer_normal, 'R');
+    set_nop(&layer_normal, 'N');
+    set_nop(&layer_normal, 'M');
 }
 
 //=============================================================================

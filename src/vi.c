@@ -579,6 +579,9 @@ bool vi_process_key(WORD vk, bool keydown) {
             case ACTION_FUNCTION:
                 if (action->fn) action->fn();
                 break;
+            case ACTION_NOP:
+                // just consume
+                break;
             default:
                 break;
         }
