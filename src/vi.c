@@ -573,8 +573,7 @@ bool vi_process_key(WORD vk, bool keydown) {
                 break;
             case ACTION_SEQUENCE:
                 output_sequence_repeat(action->sequence.events,
-                                        action->sequence.count,
-                                        count);
+                                        action->sequence.count);
                 break;
             case ACTION_FUNCTION:
                 if (action->fn) action->fn();

@@ -72,11 +72,6 @@ static void set_key(layer_t *layer, WORD from_vk, WORD to_vk) {
     layer->keys[from_vk].vk   = to_vk;
 }
 
-static void set_fn(layer_t *layer, WORD from_vk, void (*fn)(void)) {
-    layer->keys[from_vk].type = ACTION_FUNCTION;
-    layer->keys[from_vk].fn   = fn;
-}
-
 //=============================================================================
 // Layer setup
 //=============================================================================

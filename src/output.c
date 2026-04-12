@@ -63,7 +63,7 @@ void output_sequence(const key_event_t *events, int count) {
     free(inputs);
 }
 
-void output_sequence_repeat(const key_event_t *events, int count, int repeat) {
+void output_sequence_repeat(const key_event_t *events, int count) {
     output_sequence(events, count);
     Sleep(5);
 }
