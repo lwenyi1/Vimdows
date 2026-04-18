@@ -25,8 +25,8 @@ gcc -o vimdows.exe main.c hook.c keymap.c vi.c output.c -luser32
 
 ## Running
 
-Vimdows must be run as Administrator — the low-level hook requires elevated
-privileges to intercept keystrokes system-wide. It can be run with:
+Vimdows can be run in CLI or by double clicking the app. It will create a small tray icon
+in "hidden icons" which can be used to enable, disable or exit the app.
 
 ```bash
 ./vimdows.exe
